@@ -1,0 +1,2 @@
+class FastRestrictedHMM:
+    pass

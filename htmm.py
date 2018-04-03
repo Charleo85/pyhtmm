@@ -1,6 +1,8 @@
 import random, math, pickle
 import numpy as np
 
+from fast_restricted_hmm import FastRestrictedHMM
+
 
 """
 Pickleable: An interface for loading and saving objects with pickle
@@ -37,7 +39,7 @@ HTMM: A Python implementation of the Hidden Topic Markov Model
 - epsilon: float
 - theta: numpy.ndarray(len(docs), topics)
 - phi: numpy.ndarray(topics, words)
-- p_dwzpsi: list<numpy.ndarray("# sentences in a doc", 2*topics)>
+- p_dwzpsi: list<numpy.ndarray(""# sentences in a doc", 2*topics)>
 - loglik: float
 
 @Methods:
