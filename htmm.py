@@ -2,7 +2,7 @@ import random, math, pickle
 import numpy as np
 
 from fast_restricted_hmm import FastRestrictedHMM
-
+from process import process_json
 
 """
 Pickleable: An interface for loading and saving objects with pickle
@@ -59,8 +59,9 @@ class HTMM(Pickleable):
         self.loglik_ = 0.0
 
 
-    def read_train_documents(self, fname, data_dir):
-        pass
+    def read_train_documents(self, data_dir):
+        for filename in os.listdir(data_dir):
+            self.docs_ += process(data_dir+filename)
 
 
     def rand_init_params(self):

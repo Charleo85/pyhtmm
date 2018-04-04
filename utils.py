@@ -4,9 +4,11 @@ from nltk.sentiment.vader import SentimentIntensityAnalyzer
 # from nltk.tokenize.stanford import StanfordTokenizer
 from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.stem.snowball import SnowballStemmer
+from nltk.corpus import stopwords
 import re, pickle
 import locale
 
+stopword_list = stopwords.words('english')
 sid = SentimentIntensityAnalyzer()
 # word_tokenize = TreebankWordTokenizer().tokenize
 # word_tokenize = CoreNLPParser(options={"americanize": True, "ptb3Escaping": True, "splitHyphenated": False}).tokenize
@@ -47,7 +49,7 @@ def sentence2word(raw_sentence):
     return word_tokenize(cleaned_sentence)
 
 def sentence2word_normalized(raw_sentence):
-    return [normalized(w) for w in sentence2word(raw_sentence)]
+    return [normalized(w) for w in sentence2word(raw_sentence) if w not in stopword_list]
 
 def sentiment(raw_sentence):
     return id.polarity_scores(raw_sentence.lower())['compound']
