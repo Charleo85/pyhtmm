@@ -61,7 +61,7 @@ class HTMM(Pickleable):
 
     def read_train_documents(self, data_dir):
         for filename in os.listdir(data_dir):
-            self.docs_ += process(data_dir+filename)
+            self.docs_ += process_json(data_dir+filename)
 
 
     def rand_init_params(self):
