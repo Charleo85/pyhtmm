@@ -36,7 +36,7 @@ class FastRestrictedHMM:
         self.init_beta(norm_factor[-1], beta[-1])
         self.compute_all_betas(local, theta, epsilon, norm_factor, beta)
         self.combine_all_probs(alpha, beta, sprobs)
-        return np.log(norm_factor).sum()
+        return np.log(norm_factor).sum() # this is compute_loglik
 
 
     def init_alpha(self, pi, local0, norm_factor, alpha0):
