@@ -1,0 +1,2 @@
+class FastRestrictedViterbi:
+    pass
