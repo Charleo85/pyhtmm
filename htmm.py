@@ -3,8 +3,7 @@ import numpy as np
 
 from fast_restricted_hmm import FastRestrictedHMM
 from fast_restricted_viterbi import FastRestrictedViterbi
-from process import process_json
-
+from process import read_train_documents
 """
 Pickleable: An interface for loading and saving objects with pickle
 
@@ -49,14 +48,13 @@ HTMM: A Python implementation of the Hidden Topic Markov Model
 """
 
 class HTMM(Pickleable):
-    def __init__(self, topics, words, alpha, beta, iters, fname, data_dir):
+    def __init__(self, doc, words, topics=10, alpha=1, beta=1, iters=100):
         self.topics_ = topics
         self.words_ = words
         self.alpha_ = alpha
         self.beta_ = beta
         self.iters_ = iters
-        self.docs_ = []
-        self.read_train_documents(fname, data_dir)
+        self.docs_ = doc
         self.rand_init_params()
         self.loglik_ = 0.0
 
@@ -79,11 +77,6 @@ class HTMM(Pickleable):
         f.viterbi(self.epsilon_, self.theta_[idx], local, init_probs, path)
 
 
-    def read_train_documents(self, data_dir):
-        for filename in os.listdir(data_dir):
-            self.docs_ += process_json(data_dir+filename)
-
-
     def rand_init_params(self):
         self.epsilon_ = random.uniform(0, 1)
 
@@ -96,7 +89,7 @@ class HTMM(Pickleable):
             self.phi_[i] /= self.phi_[i].sum()
 
         self.p_dwzpsi_ = [None] * len(self.docs_)
-        for i in range(self.p_dwzpsi_):
+        for i in range(len(self.p_dwzpsi_)):
             self.p_dwzpsi_[i] = np.random.rand(self.docs_[i].num_sentences, 2*self.topics_)
 
 
@@ -111,7 +104,7 @@ class HTMM(Pickleable):
         ret = 0.0
         doc = self.docs_[idx]
 
-        local = np.zeros(doc.num_sentences, self.topics_)
+        local = np.zeros((doc.num_sentences, self.topics_))
         ret += self.compute_local_probs_for_doc(doc, local)
 
         init_probs = np.zeros(self.topics_ * 2)
@@ -120,7 +113,7 @@ class HTMM(Pickleable):
             init_probs[i + self.topics_] = 0.0
 
         f = FastRestrictedHMM()
-        ret += f.forward_backward(self.epsilon_, theta_[idx], local, init_probs, self.p_dwzpsi_[idx])
+        ret += f.forward_backward(self.epsilon_, self.theta_[idx], local, init_probs, self.p_dwzpsi_[idx])
 
         return ret
 
@@ -171,9 +164,8 @@ class HTMM(Pickleable):
             total += self.docs_[d].num_sentences - 1
         self.epsilon_ = lot / float(total)
 
-
     def find_phi(self):
-        czw = np.zeros(self.topics_, self.words_)
+        czw = np.zeros((self.topics_, self.words_))
         self.count_topic_words(czw)
 
         for z in range(self.topics_):
@@ -187,7 +179,7 @@ class HTMM(Pickleable):
             for i in range(self.docs_[d].num_sentences):
                 sen = self.docs_[d].sentence_list[i]
 
-                for word in sen.word_list:
+                for w in sen.word_list:
                     for z in range(self.topics_):
                         czw[z, w] += self.p_dwzpsi_[d][i][z] + self.p_dwzpsi_[d][i][z+self.topics_]
 
@@ -202,3 +194,13 @@ class HTMM(Pickleable):
             for z in range(self.topics_):
                 self.theta_[d, z] = cdz[z] + self.alpha_ - 1
             self.theta_[d] /= self.theta_[d].sum()
+
+
+if __name__ == "__main__":
+    docs, num_words, word_index, index_word = read_train_documents('./data/debug/') #use ./data/debug/ for debugging
+    model = HTMM(docs, num_words)
+    pickle.dump(word_index, open('./data/word_index.pickle', 'wb'))
+    pickle.dump(index_word, open('./data/index_word.pickle', 'wb'))
+    model.save('./data/model.pickle')
+    print(num_words, word_index)
+    model.infer()

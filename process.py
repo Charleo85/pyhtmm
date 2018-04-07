@@ -1,16 +1,22 @@
-import json
+import json, os
 from utils import *
+from document import _Document
+from sentence import _Sentence
+
 word_index = {} #string: int
 index_word = {} #int: string
 index = 0
+
 def process_json(json_filename):
     product = json.load(open(json_filename))
     docs = []
     for review in product['Reviews']:
-        docs.append(process(review['Content']))
+        if review['Content'] != None:
+            docs.append(process(review['Content']))
     return docs
 
 def process(txt):
+    global index
     sentences = paragraph2sentence(txt)
     doc = _Document()
     for stn in sentences:
@@ -25,3 +31,11 @@ def process(txt):
 
         doc.add_sentence(sentence)
     return doc
+
+
+def read_train_documents(data_dir):
+    docs = []
+    for filename in os.listdir(data_dir):
+        docs += process_json(data_dir+filename)
+
+    return docs, index, word_index, index_word

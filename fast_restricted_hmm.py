@@ -28,8 +28,8 @@ class FastRestrictedHMM:
             assert(len(local[i]) == self.topics_)
 
         norm_factor = np.zeros(len(local))
-        alpha = np.zeros(len(local), self.states_)
-        beta = np.zeros(len(local, self.states_))
+        alpha = np.zeros((len(local), self.states_))
+        beta = np.zeros((len(local), self.states_))
 
         self.init_alpha(pi, local[0], norm_factor, alpha[0])
         self.compute_all_alphas(local, theta, epsilon, norm_factor, alpha)
@@ -48,7 +48,7 @@ class FastRestrictedHMM:
 
 
     def compute_all_alphas(self, local, theta, epsilon, norm_factor, alpha):
-        for i in range(1, len(local)):
+        for i in range(1, len(local)-1):
             for s in range(self.topics_):
                 alpha[i, s] = epsilon * theta[i] * local[i, s]
                 alpha[i, s+self.topics_] = (1-epsilon) * (alpha[i-1, s] + alpha[i-1, s+self.topics_]) * local[i, s]
