@@ -2,6 +2,7 @@ import random, math, pickle
 import numpy as np
 
 from fast_restricted_hmm import FastRestrictedHMM
+from fast_restricted_viterbi import FastRestrictedViterbi
 from process import process_json
 
 """
@@ -44,6 +45,7 @@ HTMM: A Python implementation of the Hidden Topic Markov Model
 
 @Methods:
 - inter(): train the model on the set of training documents (docs)
+- map_topic_estimate(idx, path): inference on doc #idx and set "path"
 """
 
 class HTMM(Pickleable):
@@ -57,6 +59,24 @@ class HTMM(Pickleable):
         self.read_train_documents(fname, data_dir)
         self.rand_init_params()
         self.loglik_ = 0.0
+
+
+    def infer(self):
+        for epoch in range(self.iters_):
+            self.e_step()
+            self.m_step()
+            print("iteration: %d, loglikelihood: %f" % (epoch, self.loglik_))
+
+
+    def map_topic_estimate(self, idx, path):
+        f = FastRestrictedViterbi()
+        local = np.zeros(self.docs_[idx].num_sentences, self.topics_)
+        self.compute_local_probs_for_doc(self.docs_[idx], local)
+        init_probs = np.zeros(self.topics_*2)
+        for i in range(self.topics_):
+            init_probs[i] = self.theta_[idx][i]
+            init_probs[i+self.topics_] = 0.0
+        f.viterbi(self.epsilon_, self.theta_[idx], local, init_probs, path)
 
 
     def read_train_documents(self, data_dir):
@@ -80,17 +100,11 @@ class HTMM(Pickleable):
             self.p_dwzpsi_[i] = np.random.rand(self.docs_[i].num_sentences, 2*self.topics_)
 
 
-    def infer(self):
-        for epoch in range(self.iters_):
-            self.e_step()
-            self.m_step()
-            print("iteration: %d, loglikelihood: %f" % (epoch, self.loglik_))
-
-
     def e_step(self):
         self.loglik_ = 0.0
         for i in range(len(self.docs_)):
             self.loglik_ += self.e_step_in_single_doc(i)
+        self.interpret_priors_into_likelihood()
 
 
     def e_step_in_single_doc(self, idx):
@@ -129,6 +143,16 @@ class HTMM(Pickleable):
                 ret += math.log(norm)
 
         return ret
+
+
+    def interpret_priors_into_likelihood(self):
+        for d in range(len(self.docs_)):
+            for z in range(self.topics_):
+                self.loglik_ += (self.alpha_ - 1) * math.log(self.theta_[d][z])
+
+        for z in range(self.topics_):
+            for w in range(self.words_):
+                self.loglik_ += (self.beta_ - 1) * math.log(self.phi_[z][w])
 
 
     def m_step(self):
