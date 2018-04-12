@@ -6,7 +6,7 @@ from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.stem.snowball import SnowballStemmer
 from nltk.corpus import stopwords
 import re, pickle
-import locale
+import locale, sys, datetime, time, os
 
 stopword_list = stopwords.words('english')
 sid = SentimentIntensityAnalyzer()
@@ -58,9 +58,30 @@ def numSentence(para):
     return sum(1 for sent in paragraph2sentence(para) if sent.length > 0)
 
 def save_pickle(data, filename='sample.pickle'):
-	with open(filename, mode='wb') as f:
-		pickle.dump(data, f)
+    with open(filename, mode='wb') as f:
+        pickle.dump(data, f)
+    print('saved %s'%(filename))
+
+def load_pickle(filename):
+    with open(filename, 'rb') as f:
+        return pickle.load(f)
+    print('loaded %s'%(filename))
 
 def save_txt(data, filename='sample.txt'):
 	with open(filename, mode='w') as f:
 		f.write(str(data))
+
+def config_logger():
+    logtime = datetime.datetime.fromtimestamp(int(time.time())).strftime('%Y-%m-%d-%H-%M-%S')
+    print('started parser logger at ' + logtime)
+    os.system('mkdir -p logs/'+logtime+'/')
+    sys.stdout = open('logs/'+logtime+'/std.log', 'w')
+    sys.stderr = open('logs/'+logtime+'/error.log', 'w')
+
+def flush_logger():
+    sys.stdout.flush()
+    sys.stderr.flush()
+
+def logger(message, file=sys.stdout):
+    print(message, file=file)
+    flush_logger()

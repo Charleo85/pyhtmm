@@ -103,5 +103,8 @@ ENV/
 # data
 data/*
 
+# log
+log/*
+
 # mac
 **.DS_Store

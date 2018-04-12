@@ -4,6 +4,7 @@ import numpy as np
 from fast_restricted_hmm import FastRestrictedHMM
 from fast_restricted_viterbi import FastRestrictedViterbi
 from process import read_train_documents
+from utils import config_logger, save_pickle, load_pickle
 """
 Pickleable: An interface for loading and saving objects with pickle
 
@@ -161,11 +162,12 @@ class HTMM(Pickleable):
         total = 0
         lot = 0.0
         for d in range(len(self.docs_)):
-            for i in range(self.docs_[d].num_sentences):
+            for i in range(1, self.docs_[d].num_sentences):
                 for z in range(self.topics_):
                     lot += self.p_dwzpsi_[d][i][z]
             total += self.docs_[d].num_sentences - 1
-        self.epsilon_ = lot / float(total)
+        self.epsilon_ = lot / total
+        print(self.epsilon_)
 
     def find_phi(self):
         czw = np.zeros((self.topics_, self.words_))
@@ -205,17 +207,30 @@ class HTMM(Pickleable):
             print("==========")
 
     def load_prior(self, prior_file, eta=5.0):
-        with open(prior_file, 'r'):
-            
         pass
 
 
+word_index_filepath = './data/pickle/word_index.pickle'
+index_word_filepath = './data/pickle/word_index.pickle'
+model_filepath = './data/pickle/model.pickle'
+
 if __name__ == "__main__":
-    docs, num_words, word_index, index_word = read_train_documents('./data/debug/') #use ./data/debug/ for debugging
-    model = HTMM(docs, num_words, iters=100)
-    pickle.dump(word_index, open('./data/word_index.pickle', 'wb'))
-    pickle.dump(index_word, open('./data/index_word.pickle', 'wb'))
-    model.save('./data/model.pickle')
+    config_logger()
+    try:
+        word_index = load_pickle(word_index_filepath)
+        index_word = load_pickle(index_word_filepath)
+        num_words = len(index_word)
+    except:
+        docs, num_words, word_index, index_word = read_train_documents('./data/laptops/') #use ./data/debug/ for debugging
+        save_pickle(word_index, word_index_filepath)
+        save_pickle(index_word, index_word_filepath)
+
+    try:
+        model = load_pickle(model_filepath)
+    except:
+        model = HTMM(docs, num_words, iters=100)
+        model.save(model_filepath)
+
     # print(num_words, word_index)
     model.load_prior('laptops_bootstrapping_test.dat')
     model.infer()
