@@ -48,7 +48,7 @@ HTMM: A Python implementation of the Hidden Topic Markov Model
 """
 
 class HTMM(Pickleable):
-    def __init__(self, doc, words, topics=10, alpha=1, beta=1, iters=100):
+    def __init__(self, doc, words, topics=10, alpha=1.001, beta=1.0001, iters=100):
         self.topics_ = topics
         self.words_ = words
         self.alpha_ = alpha
@@ -90,7 +90,7 @@ class HTMM(Pickleable):
 
         self.p_dwzpsi_ = [None] * len(self.docs_)
         for i in range(len(self.p_dwzpsi_)):
-            self.p_dwzpsi_[i] = np.random.rand(self.docs_[i].num_sentences, 2*self.topics_)
+            self.p_dwzpsi_[i] = np.zeros((self.docs_[i].num_sentences, 2*self.topics_))
 
 
     def e_step(self):
@@ -133,6 +133,7 @@ class HTMM(Pickleable):
                     local[i, z] *= self.phi_[z][word]
                     norm += local[i, z]
                 local[i] /= norm
+                if norm <= 0: continue
                 ret += math.log(norm)
 
         return ret
@@ -141,10 +142,12 @@ class HTMM(Pickleable):
     def interpret_priors_into_likelihood(self):
         for d in range(len(self.docs_)):
             for z in range(self.topics_):
+                if self.theta_[d][z] <= 0: continue
                 self.loglik_ += (self.alpha_ - 1) * math.log(self.theta_[d][z])
 
         for z in range(self.topics_):
             for w in range(self.words_):
+                if self.phi_[z][w] <= 0: continue
                 self.loglik_ += (self.beta_ - 1) * math.log(self.phi_[z][w])
 
 
@@ -195,12 +198,25 @@ class HTMM(Pickleable):
                 self.theta_[d, z] = cdz[z] + self.alpha_ - 1
             self.theta_[d] /= self.theta_[d].sum()
 
+    def print_top_word(self, index_word, K=10):
+        for phi in self.phi_:
+            for idx in np.argsort(phi)[:K]:
+                print(index_word[idx])
+            print("==========")
+
+    def load_prior(self, prior_file, eta=5.0):
+        with open(prior_file, 'r'):
+            
+        pass
+
 
 if __name__ == "__main__":
     docs, num_words, word_index, index_word = read_train_documents('./data/debug/') #use ./data/debug/ for debugging
-    model = HTMM(docs, num_words)
+    model = HTMM(docs, num_words, iters=100)
     pickle.dump(word_index, open('./data/word_index.pickle', 'wb'))
     pickle.dump(index_word, open('./data/index_word.pickle', 'wb'))
     model.save('./data/model.pickle')
-    print(num_words, word_index)
+    # print(num_words, word_index)
+    model.load_prior('laptops_bootstrapping_test.dat')
     model.infer()
+    model.print_top_word(index_word, 15)
