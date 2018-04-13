@@ -5,6 +5,8 @@ from fast_restricted_hmm import FastRestrictedHMM
 from fast_restricted_viterbi import FastRestrictedViterbi
 from process import read_train_documents
 from utils import config_logger, save_pickle, load_pickle, word2index
+from sys import argv
+
 """
 Pickleable: An interface for loading and saving objects with pickle
 
@@ -234,19 +236,21 @@ if __name__ == "__main__":
         save_pickle(word_index, word_index_filepath)
         save_pickle(index_word, index_word_filepath)
 
-    ### print topword in trained model
-    model = load_pickle(model_trained_filepath)
-    model.print_top_word(index_word, 25)
+    print(argv)
+    if argv[1] == 'infer':
+        ### print topword in trained model
+        model = load_pickle(model_trained_filepath)
+        model.print_top_word(index_word, 25)
+    else:
+        ## train model
+        try:
+            model = load_pickle(model_filepath)
+        except:
+            model = HTMM(docs, num_words)
+            model.save(model_filepath)
 
-    ### train model
-    # try:
-    #     model = load_pickle(model_filepath)
-    # except:
-    #     model = HTMM(docs, num_words)
-    #     model.save(model_filepath)
-    #
-    # # print(num_words, word_index)
-    # model.load_prior('./data/laptops_bootstrapping_test.dat', word_index)
-    # model.infer(iters=5)
-    # model.print_top_word(index_word, 15)
-    # model.save(model_trained_filepath)
+        # print(num_words, word_index)
+        model.load_prior('./data/laptops_bootstrapping_test.dat', word_index)
+        model.infer(iters=5)
+        model.print_top_word(index_word, 15)
+        model.save(model_trained_filepath)
