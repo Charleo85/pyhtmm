@@ -239,8 +239,9 @@ if __name__ == "__main__":
     print(argv)
     if argv[1] == 'infer':
         ### print topword in trained model
+        num_top_words = int(argv[2]) if len(argv) > 2 else 25
         model = load_pickle(model_trained_filepath)
-        model.print_top_word(index_word, 25)
+        model.print_top_word(index_word, num_top_words)
     else:
         ## train model
         try:
