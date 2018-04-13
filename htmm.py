@@ -4,7 +4,7 @@ import numpy as np
 from fast_restricted_hmm import FastRestrictedHMM
 from fast_restricted_viterbi import FastRestrictedViterbi
 from process import read_train_documents
-from utils import config_logger, save_pickle, load_pickle
+from utils import config_logger, save_pickle, load_pickle, word2index
 """
 Pickleable: An interface for loading and saving objects with pickle
 
@@ -35,7 +35,6 @@ HTMM: A Python implementation of the Hidden Topic Markov Model
 - words: int
 - alpha: float
 - beta: float
-- iters: int
 - docs: list<Document>
 - epsilon: float
 - theta: numpy.ndarray(len(docs), topics)
@@ -49,19 +48,18 @@ HTMM: A Python implementation of the Hidden Topic Markov Model
 """
 
 class HTMM(Pickleable):
-    def __init__(self, doc, words, topics=10, alpha=1.001, beta=1.0001, iters=100):
+    def __init__(self, doc, words, topics=10, alpha=1.001, beta=1.0001):
         self.topics_ = topics
         self.words_ = words
         self.alpha_ = alpha
         self.beta_ = beta
-        self.iters_ = iters
         self.docs_ = doc
         self.rand_init_params()
         self.loglik_ = 0.0
 
 
-    def infer(self):
-        for epoch in range(self.iters_):
+    def infer(self, iters=100):
+        for epoch in range(iters):
             self.e_step()
             self.m_step()
             print("iteration: %d, loglikelihood: %f" % (epoch, self.loglik_))
@@ -202,20 +200,31 @@ class HTMM(Pickleable):
 
     def print_top_word(self, index_word, K=10):
         for phi in self.phi_:
-            for idx in np.argsort(phi)[:K]:
+            for idx in np.argsort(phi)[-K:]:
                 print(index_word[idx])
             print("==========")
 
-    def load_prior(self, prior_file, eta=5.0):
-        pass
+    def load_prior(self, prior_file, word_index, eta=5.0):
+        with open(prior_file, 'r') as lines:
+            for i, l in enumerate(lines):
+                for raw_word in l.rstrip('\n').split(' ')[1:]:
+                    word = word2index(raw_word)
+                    if word in word_index:
+                        idx = word_index[word]
+                        self.phi_[i, idx] += eta
+
+
+
+
 
 
 word_index_filepath = './data/pickle/word_index.pickle'
-index_word_filepath = './data/pickle/word_index.pickle'
+index_word_filepath = './data/pickle/index_word.pickle'
 model_filepath = './data/pickle/model.pickle'
+model_trained_filepath = './data/pickle/trained_model.pickle'
 
 if __name__ == "__main__":
-    config_logger()
+    # config_logger()
     try:
         word_index = load_pickle(word_index_filepath)
         index_word = load_pickle(index_word_filepath)
@@ -225,13 +234,19 @@ if __name__ == "__main__":
         save_pickle(word_index, word_index_filepath)
         save_pickle(index_word, index_word_filepath)
 
-    try:
-        model = load_pickle(model_filepath)
-    except:
-        model = HTMM(docs, num_words, iters=100)
-        model.save(model_filepath)
+    ### print topword in trained model
+    model = load_pickle(model_trained_filepath)
+    model.print_top_word(index_word, 25)
 
-    # print(num_words, word_index)
-    model.load_prior('laptops_bootstrapping_test.dat')
-    model.infer()
-    model.print_top_word(index_word, 15)
+    ### train model
+    # try:
+    #     model = load_pickle(model_filepath)
+    # except:
+    #     model = HTMM(docs, num_words)
+    #     model.save(model_filepath)
+    #
+    # # print(num_words, word_index)
+    # model.load_prior('./data/laptops_bootstrapping_test.dat', word_index)
+    # model.infer(iters=5)
+    # model.print_top_word(index_word, 15)
+    # model.save(model_trained_filepath)
