@@ -48,6 +48,12 @@ def sentence2word(raw_sentence):
     cleaned_sentence = clean_up(raw_sentence)
     return word_tokenize(cleaned_sentence)
 
+def word2index(w):
+    while len(w) > 1 and (w.startswith('-') or w.startswith('/') or w.startswith('.') or w.endswith('>') or w.endswith('<')): w = w[1:]
+    while len(w) > 1 and (w.endswith('-') or w.endswith('/') or w.endswith('.') or w.endswith('>') or w.endswith('<')): w = w[:-1]
+    if w in stopword_list: return None
+    return normalized(w)
+
 def sentence2word_normalized(raw_sentence):
     return [normalized(w) for w in sentence2word(raw_sentence) if w not in stopword_list]
 
@@ -63,9 +69,9 @@ def save_pickle(data, filename='sample.pickle'):
     print('saved %s'%(filename))
 
 def load_pickle(filename):
+    print('loading %s'%(filename))
     with open(filename, 'rb') as f:
         return pickle.load(f)
-    print('loaded %s'%(filename))
 
 def save_txt(data, filename='sample.txt'):
 	with open(filename, mode='w') as f:
