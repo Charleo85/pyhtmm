@@ -1,10 +1,14 @@
-import random, math, pickle
+import random, math, pickle, queue
 import numpy as np
+
+from multiprocessing import Process, Queue
+from multiprocessing.sharedctypes import RawArray, Array
 
 from fast_restricted_hmm import FastRestrictedHMM
 from fast_restricted_viterbi import FastRestrictedViterbi
 from process import read_train_documents
 from utils import config_logger, save_pickle, load_pickle
+
 """
 Pickleable: An interface for loading and saving objects with pickle
 
@@ -40,7 +44,7 @@ HTMM: A Python implementation of the Hidden Topic Markov Model
 - epsilon: float
 - theta: numpy.ndarray(len(docs), topics)
 - phi: numpy.ndarray(topics, words)
-- p_dwzpsi: list<numpy.ndarray(""# sentences in a doc", 2*topics)>
+- p_dwzpsi: numpy.ndarray(len(docs), # sentences in a doc", 2*topics)
 - loglik: float
 
 @Methods:
@@ -49,22 +53,32 @@ HTMM: A Python implementation of the Hidden Topic Markov Model
 """
 
 class HTMM(Pickleable):
-    def __init__(self, doc, words, topics=10, alpha=1.001, beta=1.0001, iters=100):
+    def __init__(self, doc, words, topics=10, alpha=1.001, beta=1.0001, iters=100, num_workers=10):
         self.topics_ = topics
         self.words_ = words
         self.alpha_ = alpha
         self.beta_ = beta
         self.iters_ = iters
         self.docs_ = doc
+        self.num_workers_ = num_workers
         self.rand_init_params()
         self.loglik_ = 0.0
 
 
     def infer(self):
+        shared_arr = None
+        if self.num_workers_ > 1:
+            shared_arr = RawArray('d', self.p_dwzpsi_.flatten())
+            tmp = np.frombuffer(shared_arr)
+            self.p_dwzpsi_ = tmp.reshape(self.p_dwzpsi_shape_)
+
         for epoch in range(self.iters_):
-            self.e_step()
+            self.e_step(shared_arr)
             self.m_step()
             print("iteration: %d, loglikelihood: %f" % (epoch, self.loglik_))
+
+        if self.num_workers_ > 1:
+            self.p_dwzpsi_ = np.copy(self.p_dwzpsi_)
 
 
     def map_topic_estimate(self, idx, path):
@@ -89,19 +103,46 @@ class HTMM(Pickleable):
         for i in range(self.phi_.shape[0]):
             self.phi_[i] /= self.phi_[i].sum()
 
-        self.p_dwzpsi_ = [None] * len(self.docs_)
-        for i in range(len(self.p_dwzpsi_)):
-            self.p_dwzpsi_[i] = np.zeros((self.docs_[i].num_sentences, 2*self.topics_))
-
-
-    def e_step(self):
-        self.loglik_ = 0.0
+        max_dim = 0
         for i in range(len(self.docs_)):
-            self.loglik_ += self.e_step_in_single_doc(i)
+            max_dim = max(max_dim, self.docs_[i].num_sentences)
+        self.p_dwzpsi_ = np.zeros((len(self.docs_), max_dim, 2*self.topics_))
+        self.p_dwzpsi_shape_ = self.p_dwzpsi_.shape
+
+
+    def e_step(self, shared_arr):
+        # print("before e step")
+        assert(self.num_workers_ > 1 or shared_arr is None)
+
+        self.loglik_ = 0.0
+        if self.num_workers_ > 1:
+            q = Queue()
+            ps = [Process(target=self.e_step_chunk, args=(i, q, shared_arr)) for i in range(self.num_workers_)]
+            for p in ps: p.start()
+            for p in ps: p.join()
+            while not q.empty(): self.loglik_ += q.get()
+        else:
+            for d in range(len(self.docs_)):
+                self.loglik_ += self.e_step_in_single_doc(d, self.p_dwzpsi_)
+
         self.interpret_priors_into_likelihood()
 
 
-    def e_step_in_single_doc(self, idx):
+    def e_step_chunk(self, pid, q, shared_arr):
+        chunk_len = len(self.docs_) // (self.num_workers_ - 1)
+        start_idx = pid * chunk_len
+        end_idx = min(len(self.docs_), (pid+1) * chunk_len)
+
+        tmp = np.frombuffer(shared_arr)
+        p_dwzpsi_ptr = tmp.reshape(self.p_dwzpsi_shape_)
+
+        ret = 0.0
+        for d in range(start_idx, end_idx):
+            ret += self.e_step_in_single_doc(d, p_dwzpsi_ptr)
+        q.put(ret)
+
+
+    def e_step_in_single_doc(self, idx, p_dwzpsi_ptr):
         ret = 0.0
         doc = self.docs_[idx]
 
@@ -114,7 +155,7 @@ class HTMM(Pickleable):
             init_probs[i + self.topics_] = 0.0
 
         f = FastRestrictedHMM()
-        ret += f.forward_backward(self.epsilon_, self.theta_[idx], local, init_probs, self.p_dwzpsi_[idx])
+        ret += f.forward_backward(self.epsilon_, self.theta_[idx], local, init_probs, p_dwzpsi_ptr[idx])
 
         return ret
 
@@ -153,8 +194,11 @@ class HTMM(Pickleable):
 
 
     def m_step(self):
+        # print("before m step")
         self.find_epsilon()
+        # print("after epsilon")
         self.find_phi()
+        # print("after phi")
         self.find_theta()
 
 
@@ -167,23 +211,48 @@ class HTMM(Pickleable):
                     lot += self.p_dwzpsi_[d][i][z]
             total += self.docs_[d].num_sentences - 1
         self.epsilon_ = lot / total
-        print(self.epsilon_)
+
 
     def find_phi(self):
-        czw = np.zeros((self.topics_, self.words_))
-        self.count_topic_words(czw)
-
+        czw = self.count_topic_words()
         for z in range(self.topics_):
             for w in range(self.words_):
                 self.phi_[z, w] = czw[z, w] + self.beta_ - 1
             self.phi_[z] /= self.phi_[z].sum()
 
 
-    def count_topic_words(self, czw):
-        for d in range(len(self.docs_)):
+    def count_topic_words(self):
+        czw = np.zeros((self.topics_, self.words_))
+
+        if self.num_workers_ > 1:
+            shared_arr = Array('d', czw.flatten())
+            ps = [Process(target=self.czw_chunk, args=(i, shared_arr)) for i in range(self.num_workers_)]
+            for p in ps: p.start()
+            for p in ps: p.join()
+            tmp = np.frombuffer(shared_arr.get_obj())
+            czw = np.copy(tmp.reshape((self.topics_, self.words_)))
+        else:
+            for d in range(len(self.docs_)):
+                for i in range(self.docs_[d].num_sentences):
+                    sen = self.docs_[d].sentence_list[i]
+                    for w in sen.word_list:
+                        for z in range(self.topics_):
+                            czw[z, w] += self.p_dwzpsi_[d][i][z] + self.p_dwzpsi_[d][i][z+self.topics_]
+
+        return czw
+
+
+    def czw_chunk(self, pid, shared_arr):
+        chunk_len = len(self.docs_) // (self.num_workers_ - 1)
+        start_idx = pid * chunk_len
+        end_idx = min(len(self.docs_), (pid+1) * chunk_len)
+
+        tmp = np.frombuffer(shared_arr.get_obj())
+        czw = tmp.reshape((self.topics_, self.words_))
+
+        for d in range(start_idx, end_idx):
             for i in range(self.docs_[d].num_sentences):
                 sen = self.docs_[d].sentence_list[i]
-
                 for w in sen.word_list:
                     for z in range(self.topics_):
                         czw[z, w] += self.p_dwzpsi_[d][i][z] + self.p_dwzpsi_[d][i][z+self.topics_]
@@ -200,38 +269,41 @@ class HTMM(Pickleable):
                 self.theta_[d, z] = cdz[z] + self.alpha_ - 1
             self.theta_[d] /= self.theta_[d].sum()
 
+
     def print_top_word(self, index_word, K=10):
         for phi in self.phi_:
             for idx in np.argsort(phi)[:K]:
                 print(index_word[idx])
-            print("==========")
+            print("=" * 10)
+
 
     def load_prior(self, prior_file, eta=5.0):
         pass
 
 
-word_index_filepath = './data/pickle/word_index.pickle'
-index_word_filepath = './data/pickle/word_index.pickle'
-model_filepath = './data/pickle/model.pickle'
-
 if __name__ == "__main__":
-    config_logger()
+    word_index_filepath = './data/pickle/word_index.pickle'
+    index_word_filepath = './data/pickle/index_word.pickle'
+    model_filepath = './data/pickle/model.pickle'
+    docs_path = './data/pickle/docs.pickle'
+
+    # config_logger()
     try:
         word_index = load_pickle(word_index_filepath)
         index_word = load_pickle(index_word_filepath)
-        num_words = len(index_word)
+        docs = load_pickle(docs_path)
     except:
-        docs, num_words, word_index, index_word = read_train_documents('./data/laptops/') #use ./data/debug/ for debugging
+        docs, word_index, index_word = read_train_documents('./data/laptops/')
         save_pickle(word_index, word_index_filepath)
         save_pickle(index_word, index_word_filepath)
+        save_pickle(docs, docs_path)
 
     try:
         model = load_pickle(model_filepath)
     except:
-        model = HTMM(docs, num_words, iters=100)
+        model = HTMM(docs, len(word_index), iters=100)
         model.save(model_filepath)
 
-    # print(num_words, word_index)
     model.load_prior('laptops_bootstrapping_test.dat')
     model.infer()
     model.print_top_word(index_word, 15)

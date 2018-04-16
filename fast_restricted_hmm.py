@@ -22,7 +22,7 @@ class FastRestrictedHMM:
         self.states_ = 2 * self.topics_
 
         assert(len(pi) == self.states_)
-        assert(len(sprobs) == len(local))
+        # assert(len(sprobs) == len(local))
         for i in range(len(local)):
             assert(len(sprobs[i]) == self.states_)
             assert(len(local[i]) == self.topics_)

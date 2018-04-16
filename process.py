@@ -1,4 +1,6 @@
 import json, os
+from tqdm import tqdm
+
 from utils import *
 from document import _Document
 from sentence import _Sentence
@@ -35,7 +37,9 @@ def process(txt):
 
 def read_train_documents(data_dir):
     docs = []
-    for filename in os.listdir(data_dir):
+    print("Loading all train documents...")
+
+    for filename in tqdm(os.listdir(data_dir)):
         docs += process_json(data_dir+filename)
 
-    return docs, index, word_index, index_word
+    return docs, word_index, index_word
