@@ -286,13 +286,17 @@ class HTMM(Pickleable):
                         idx = word_index[word]
                         self.phi_[i, idx] += eta
 
+    def predict_topic(review_doc):
+        pass
+
+
+word_index_filepath = './data/pickle/word_index.pickle'
+index_word_filepath = './data/pickle/index_word.pickle'
+model_filepath = './data/pickle/model.pickle'
+model_trained_filepath = './data/pickle/trained_model.pickle'
+docs_path = './data/pickle/docs.pickle'
 
 if __name__ == "__main__":
-    word_index_filepath = './data/pickle/word_index.pickle'
-    index_word_filepath = './data/pickle/index_word.pickle'
-    model_filepath = './data/pickle/model.pickle'
-    model_trained_filepath = './data/pickle/trained_model.pickle'
-    docs_path = './data/pickle/docs.pickle'
 
     # config_logger()
     try:
