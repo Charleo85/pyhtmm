@@ -1,4 +1,4 @@
-import random, math, pickle, queue
+import random, math, pickle, sys
 import numpy as np
 
 from multiprocessing import Process, Queue
@@ -8,7 +8,6 @@ from fast_restricted_hmm import FastRestrictedHMM
 from fast_restricted_viterbi import FastRestrictedViterbi
 from process import read_train_documents
 from utils import config_logger, save_pickle, load_pickle, word2index
-from sys import argv
 
 """
 Pickleable: An interface for loading and saving objects with pickle
@@ -53,25 +52,27 @@ HTMM: A Python implementation of the Hidden Topic Markov Model
 """
 
 class HTMM(Pickleable):
-    def __init__(self, doc, words, topics=10, alpha=1.001, beta=1.0001, iters=100, num_workers=10):
+    def __init__(self, doc, words, topics=10, alpha=1.001, beta=1.0001, iters=100, num_workers=1):
         self.topics_ = topics
         self.words_ = words
         self.alpha_ = alpha
         self.beta_ = beta
         self.docs_ = doc
+        self.iters_ = iters
         self.num_workers_ = num_workers
         self.rand_init_params()
         self.loglik_ = 0.0
 
 
-    def infer(self):
+    def infer(self, iters=None):
+        if iters is None: iters = self.iters_
         shared_arr = None
         if self.num_workers_ > 1:
             shared_arr = RawArray('d', self.p_dwzpsi_.flatten())
             tmp = np.frombuffer(shared_arr)
             self.p_dwzpsi_ = tmp.reshape(self.p_dwzpsi_shape_)
 
-        for epoch in range(self.iters_):
+        for epoch in range(iters):
             self.e_step(shared_arr)
             self.m_step()
             print("iteration: %d, loglikelihood: %f" % (epoch, self.loglik_))
@@ -304,18 +305,17 @@ if __name__ == "__main__":
         save_pickle(index_word, index_word_filepath)
         save_pickle(docs, docs_path)
 
-    print(argv)
-    if argv[1] == 'infer':
-        ### print topword in trained model
-        num_top_words = int(argv[2]) if len(argv) > 2 else 25
+    if len(sys.argv) > 1 and sys.argv[1] == 'infer':
+        # print topword in trained model
+        num_top_words = int(sys.argv[2]) if len(sys.argv) > 2 else 25
         model = load_pickle(model_trained_filepath)
         model.print_top_word(index_word, num_top_words)
     else:
-        ## train model
+        # train model
         try:
             model = load_pickle(model_filepath)
         except:
-            model = HTMM(docs, num_words)
+            model = HTMM(docs, len(word_index), num_workers=10)
             model.save(model_filepath)
 
         # print(num_words, word_index)
