@@ -7,7 +7,7 @@ from multiprocessing.sharedctypes import RawArray, Array
 from fast_restricted_hmm import FastRestrictedHMM
 from fast_restricted_viterbi import FastRestrictedViterbi
 from process import read_train_documents
-from utils import config_logger, save_pickle, load_pickle, word2index
+from utils import config_logger, save_pickle, load_pickle
 
 """
 Pickleable: An interface for loading and saving objects with pickle
@@ -165,7 +165,7 @@ class HTMM(Pickleable):
 
         for i in range(doc.num_sentences):
             for z in range(self.topics_):
-                local[i, z] = 1.0 / float(self.topics_)
+                local[i, z] = 1.0 / self.topics_
 
             ret += math.log(self.topics_)
             for j in range(doc.sentence_list[i].num_words):
@@ -279,15 +279,36 @@ class HTMM(Pickleable):
 
     def load_prior(self, prior_file, word_index, eta=5.0):
         with open(prior_file, 'r') as lines:
-            for i, l in enumerate(lines):
+            for z, l in enumerate(lines):
                 for raw_word in l.rstrip('\n').split(' ')[1:]:
                     word = word2index(raw_word)
                     if word in word_index:
                         idx = word_index[word]
-                        self.phi_[i, idx] += eta
+                        self.phi_[z, idx] += eta
 
     def predict_topic(review_doc):
         pass
+        # # Step 1: pre-compute emission probability
+        # emission = np.zeros((review_doc.num_sentences, self.topics_))
+        # for i in range(review_doc.num_sentences):
+        #     sentence = review_doc.sentence_list[i]
+        #     for z in self.topics_:
+        #         for word_idx in sentence.word_list:
+        #             emission[z,j] += self.phi_[z, word_idx]
+        #
+        # # Step 2: use forword/backword algorithm to compute the posterior
+        # local = np.zeros((review_doc.num_sentences, self.topics_))
+        # ret += self.compute_local_probs_for_doc(review_doc, local)
+        #
+        # init_probs = np.zeros(self.topics_ * 2)
+        # for i in range(self.topics_):
+        #     init_probs[i] = self.theta_[idx][i]
+        #     init_probs[i + self.topics_] = 0.0
+        #
+        # f = FastRestrictedHMM()
+        # ret += f.forward_backward(self.epsilon_, self.theta_[idx], local, init_probs, p_dwzpsi_ptr[idx])
+        # # Step 3: collection expectations from the posterior distribution
+
 
 
 word_index_filepath = './data/pickle/word_index.pickle'
