@@ -7,7 +7,7 @@ from multiprocessing.sharedctypes import RawArray, Array
 from fast_restricted_hmm import FastRestrictedHMM
 from fast_restricted_viterbi import FastRestrictedViterbi
 from process import read_train_documents
-from utils import config_logger, save_pickle, load_pickle
+from utils import config_logger, save_pickle, load_pickle, word2index
 
 """
 Pickleable: An interface for loading and saving objects with pickle

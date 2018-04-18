@@ -50,6 +50,7 @@ def sentence2word(raw_sentence):
     return word_tokenize(cleaned_sentence)
 
 def word2index(w):
+    w = w.lower()
     while len(w) > 1 and (w.startswith('-') or w.startswith('/') or w.startswith('.') or w.endswith('>') or w.endswith('<')): w = w[1:]
     while len(w) > 1 and (w.endswith('-') or w.endswith('/') or w.endswith('.') or w.endswith('>') or w.endswith('<')): w = w[:-1]
     if w in stopword_list: return None
