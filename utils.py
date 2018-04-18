@@ -9,6 +9,7 @@ import re, pickle
 import locale, sys, datetime, time, os
 
 stopword_list = stopwords.words('english')
+punctuation_list = ['-', '(', ')', ':', '}', '{', '\'', '\'\'', '\"', '\"\"']
 sid = SentimentIntensityAnalyzer()
 # word_tokenize = TreebankWordTokenizer().tokenize
 # word_tokenize = CoreNLPParser(options={"americanize": True, "ptb3Escaping": True, "splitHyphenated": False}).tokenize
@@ -55,7 +56,10 @@ def word2index(w):
     return normalized(w)
 
 def sentence2word_normalized(raw_sentence):
-    return [normalized(w) for w in sentence2word(raw_sentence) if w not in stopword_list]
+    return [normalized(w) for w in sentence2word(raw_sentence)]
+
+def filter_wordlist(normalized_word_list):
+    return [w for w in normalized_word_list if w not in stopword_list and w not in punctuation_list]
 
 def sentiment(raw_sentence):
     return id.polarity_scores(raw_sentence.lower())['compound']

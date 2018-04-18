@@ -330,21 +330,21 @@ if __name__ == "__main__":
         save_pickle(index_word, index_word_filepath)
         save_pickle(docs, docs_path)
 
-    if len(sys.argv) > 1 and sys.argv[1] == 'infer':
-        # print topword in trained model
-        num_top_words = int(sys.argv[2]) if len(sys.argv) > 2 else 25
-        model = load_pickle(model_trained_filepath)
-        model.print_top_word(index_word, num_top_words)
-    else:
-        # train model
-        try:
-            model = load_pickle(model_filepath)
-        except:
-            model = HTMM(docs, len(word_index), num_workers=10)
-            model.save(model_filepath)
-
-        # print(num_words, word_index)
-        model.load_prior('./data/laptops_bootstrapping_test.dat', word_index)
-        model.infer(iters=5)
-        model.print_top_word(index_word, 15)
-        model.save(model_trained_filepath)
+    # if len(sys.argv) > 1 and sys.argv[1] == 'infer':
+    #     # print topword in trained model
+    #     num_top_words = int(sys.argv[2]) if len(sys.argv) > 2 else 25
+    #     model = load_pickle(model_trained_filepath)
+    #     model.print_top_word(index_word, num_top_words)
+    # else:
+    #     # train model
+    #     try:
+    #         model = load_pickle(model_filepath)
+    #     except:
+    #         model = HTMM(docs, len(word_index), num_workers=10)
+    #         model.save(model_filepath)
+    #
+    #     # print(num_words, word_index)
+    #     model.load_prior('./data/laptops_bootstrapping_test.dat', word_index)
+    #     model.infer(iters=5)
+    #     model.print_top_word(index_word, 15)
+    #     model.save(model_trained_filepath)
