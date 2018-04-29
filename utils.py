@@ -35,9 +35,6 @@ def clean_up(raw_sentence):
     return out
 
 def normalized(word):
-    w = word.lower()
-    while len(w) > 1 and w.startswith('-'): w = w[1:]
-    while len(w) > 1 and w.endswith('-'): w = w[:-1]
     w = ss.stem(w)
     if w.isdigit(): return "NUM"
     else: return w
@@ -57,7 +54,7 @@ def word2index(w):
     return normalized(w)
 
 def sentence2word_normalized(raw_sentence):
-    return [normalized(w) for w in sentence2word(raw_sentence)]
+    return [word2index(w) for w in sentence2word(raw_sentence)]
 
 def filter_wordlist(normalized_word_list):
     return [w for w in normalized_word_list if w not in stopword_list and w not in punctuation_list]
