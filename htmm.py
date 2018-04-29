@@ -1,5 +1,6 @@
 import random, math, pickle, sys
 import numpy as np
+import argparse
 
 from multiprocessing import Process, Queue
 from multiprocessing.sharedctypes import RawArray, Array
@@ -30,9 +31,56 @@ class Pickleable:
             setattr(self, attr, value)
         data_file.close()
 
+"""
+HTMM: the Hidden Topic Markov Model
+
+@Parameters:
+- topics: int
+- words: int
+- alpha: float
+- beta: float
+- epsilon: float
+- phi: numpy.ndarray(topics, words)
+- p_dwzpsi: numpy.ndarray(len(docs), # sentences in a doc", 2*topics)
+- loglik: float
+
+@Methods:
 
 """
-HTMM: A Python implementation of the Hidden Topic Markov Model
+
+class HTMM(Pickleable):
+    def __init__(self, topics, alpha, beta, phi, topics, words):
+        self.alpha_ = alpha
+        self.beta_ = beta
+        self.phi_ = phi
+        self.topics_ = topics
+        self.words_ = words
+
+    def predict_topic(review_doc):
+        # Step 1: pre-compute emission probability
+        emission = np.zeros((review_doc.num_sentences, self.topics_))
+        for i in range(review_doc.num_sentences):
+            sentence = review_doc.sentence_list[i]
+            for z in self.topics_:
+                for word_idx in sentence.word_list:
+                    emission[z,j] += self.phi_[z, word_idx]
+
+        # Step 2: use forword/backword algorithm to compute the posterior
+        local = np.zeros((review_doc.num_sentences, self.topics_))
+        ret += self.compute_local_probs_for_doc(review_doc, local)
+
+        init_probs = np.zeros(self.topics_ * 2)
+        for i in range(self.topics_):
+            init_probs[i] = self.theta_[idx][i]
+            init_probs[i + self.topics_] = 0.0
+
+        f = FastRestrictedHMM()
+        ret += f.forward_backward(self.epsilon_, self.theta_[idx], local, init_probs, p_dwzpsi_ptr[idx])
+        # Step 3: collection expectations from the posterior distribution
+
+
+"""
+EM: A EM training wrapper of the Hidden Topic Markov Model
 
 @Parameters:
 - topics: int
@@ -47,11 +95,11 @@ HTMM: A Python implementation of the Hidden Topic Markov Model
 - loglik: float
 
 @Methods:
-- inter(): train the model on the set of training documents (docs)
+- infer(): train the model on the set of training documents (docs)
 - map_topic_estimate(idx, path): inference on doc #idx and set "path"
 """
 
-class HTMM(Pickleable):
+class EM(Pickleable):
     def __init__(self, doc, words, topics=10, alpha=1.001, beta=1.0001, iters=100, num_workers=1):
         self.topics_ = topics
         self.words_ = words
@@ -63,6 +111,9 @@ class HTMM(Pickleable):
         self.rand_init_params()
         self.loglik_ = 0.0
 
+    def save_HTMM_model(self, filepath):
+        htmm = HTMM(self.alpha_, self.beta_, self.phi_, self.topics_, self.words_)
+        htmm.save(filepath)
 
     def infer(self, iters=None):
         if iters is None: iters = self.iters_
@@ -286,29 +337,6 @@ class HTMM(Pickleable):
                         idx = word_index[word]
                         self.phi_[z, idx] += eta
 
-    def predict_topic(review_doc):
-        pass
-        # # Step 1: pre-compute emission probability
-        # emission = np.zeros((review_doc.num_sentences, self.topics_))
-        # for i in range(review_doc.num_sentences):
-        #     sentence = review_doc.sentence_list[i]
-        #     for z in self.topics_:
-        #         for word_idx in sentence.word_list:
-        #             emission[z,j] += self.phi_[z, word_idx]
-        #
-        # # Step 2: use forword/backword algorithm to compute the posterior
-        # local = np.zeros((review_doc.num_sentences, self.topics_))
-        # ret += self.compute_local_probs_for_doc(review_doc, local)
-        #
-        # init_probs = np.zeros(self.topics_ * 2)
-        # for i in range(self.topics_):
-        #     init_probs[i] = self.theta_[idx][i]
-        #     init_probs[i + self.topics_] = 0.0
-        #
-        # f = FastRestrictedHMM()
-        # ret += f.forward_backward(self.epsilon_, self.theta_[idx], local, init_probs, p_dwzpsi_ptr[idx])
-        # # Step 3: collection expectations from the posterior distribution
-
 
 
 word_index_filepath = './data/pickle/word_index.pickle'
@@ -320,11 +348,22 @@ docs_path = './data/pickle/docs.pickle'
 if __name__ == "__main__":
 
     # config_logger()
+    parser = argparse.ArgumentParser(description='PyHTMM interface')
+    parser.add_argument('--topwords', metavar='N', type=int, nargs='+',
+                        help='number of top words to print for each topics')
+    parser.add_argument('--iters', metavar='N', type=int, nargs='+',
+                        help='number of iterations to train')
+    parser.add_argument('--iter', dest='accumulate', action='store_const',
+                        const=sum, default=max,
+                        help='sum the integers (default: find the max)')
+
+    args = parser.parse_args()
     try:
         word_index = load_pickle(word_index_filepath)
         index_word = load_pickle(index_word_filepath)
         docs = load_pickle(docs_path)
     except:
+        print("docs not processed, start processing...")
         docs, word_index, index_word = read_train_documents('./data/laptops/')
         save_pickle(word_index, word_index_filepath)
         save_pickle(index_word, index_word_filepath)
@@ -340,7 +379,8 @@ if __name__ == "__main__":
         try:
             model = load_pickle(model_filepath)
         except:
-            model = HTMM(docs, len(word_index), num_workers=32)
+            print("model not existed, start training...")
+            model = EM(docs, len(word_index), num_workers=32)
             model.save(model_filepath)
 
         # print(num_words, word_index)
