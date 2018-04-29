@@ -67,7 +67,7 @@ class HTMM(Pickleable):
             self.e_step_in_single_doc_htmm(doc, theta_i, p_dwzpsi_i)
             self.find_theta_htmm(doc, theta_i, p_dwzpsi_i)
 
-        local = np.zeros(doc.num_sentences, self.topics_)
+        local = np.zeros((doc.num_sentences, self.topics_))
         self.compute_local_probs_for_doc_htmm(doc, local)
         init_probs = np.zeros(2*self.topics_)
         for i in range(self.topics_):
@@ -95,7 +95,7 @@ class HTMM(Pickleable):
 
     def compute_local_probs_for_doc_htmm(self, doc, local):
         for i in range(doc.num_sentences):
-            for z in range(self.topics_s
+            for z in range(self.topics_s):
                 local[i, z] = 1.0 / self.topics_
 
             for j in range(doc.sentence_list[i].num_words):
@@ -394,25 +394,25 @@ if __name__ == "__main__":
                         help='number of top words to print for each topics')
     parser.add_argument('--iters', metavar='N', type=int, nargs='+',
                         help='number of iterations to train')
-    parser.add_argument('--iter', dest='accumulate', action='store_const',
-                        const=sum, default=max,
-                        help='sum the integers (default: find the max)')
+    parser.add_argument('-train',action='store_true')
+    parser.add_argument('-process',action='store_true')
+
 
     args = parser.parse_args()
-    try:
+    if not args.process:
         word_index = load_pickle(word_index_filepath)
         index_word = load_pickle(index_word_filepath)
         docs = load_pickle(docs_path)
-    except:
+    else:
         print("docs not processed, start processing...")
         docs, word_index, index_word = read_train_documents('./data/laptops/')
         save_pickle(word_index, word_index_filepath)
         save_pickle(index_word, index_word_filepath)
         save_pickle(docs, docs_path)
 
-    if len(sys.argv) > 1 and sys.argv[1] == 'infer':
+    if args.topwords is not None:
         # print topword in trained model
-        num_top_words = int(sys.argv[2]) if len(sys.argv) > 2 else 25
+        num_top_words = args.topwords
         model = load_pickle(model_trained_filepath)
         model.print_top_word(index_word, num_top_words)
     else:

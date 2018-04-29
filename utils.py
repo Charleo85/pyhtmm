@@ -35,7 +35,7 @@ def clean_up(raw_sentence):
     return out
 
 def normalized(word):
-    w = ss.stem(w)
+    w = ss.stem(word)
     if w.isdigit(): return "NUM"
     else: return w
 
