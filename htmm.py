@@ -166,7 +166,7 @@ class EM(HTMM):
         for epoch in tqdm(range(iters)):
             self.e_step(shared_arr)
             self.m_step()
-            print("iteration: %d, loglikelihood: %f" % (epoch, self.loglik_))
+            tqdm.write("iteration: %d, loglikelihood: %f" % (epoch, self.loglik_))
 
         if self.num_workers_ > 1:
             self.p_dwzpsi_ = np.copy(self.p_dwzpsi_)
