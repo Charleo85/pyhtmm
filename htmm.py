@@ -143,7 +143,7 @@ EM: A EM training wrapper of the Hidden Topic Markov Model
 """
 class EM(HTMM):
     def __init__(self, doc, words, topics=10, alpha=1.001, beta=1.0001, iters=100, num_workers=1):
-        super(HTMM, self).__init__(alpha, beta, 0, iters, None, topics, words)
+        super(EM, self).__init__(alpha, beta, 0, iters, None, topics, words)
         self.docs_ = doc
         self.num_workers_ = num_workers
         self.rand_init_params()
@@ -151,7 +151,7 @@ class EM(HTMM):
 
 
     def save_HTMM_model(self, filepath):
-        super(HTMM, self).save(filepath)
+        super(EM, self).save(filepath)
 
 
     def infer(self, iters=None):
@@ -425,6 +425,6 @@ if __name__ == "__main__":
             model.save(model_filepath)
 
         model.load_prior('./data/laptops_bootstrapping_test.dat', word_index)
-        model.infer(iters=100)
+        model.infer(iters=args.iters)
         model.print_top_word(index_word, 15)
         model.save(model_trained_filepath)
