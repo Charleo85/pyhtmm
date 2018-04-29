@@ -384,6 +384,7 @@ word_index_filepath = './data/pickle/word_index.pickle'
 index_word_filepath = './data/pickle/index_word.pickle'
 model_filepath = './data/pickle/model.pickle'
 model_trained_filepath = './data/pickle/trained_model.pickle'
+htmm_model_trained_filepath = './data/pickle/htmm_trained_model.pickle'
 docs_path = './data/pickle/docs.pickle'
 
 
@@ -428,7 +429,7 @@ if __name__ == "__main__":
             model.save(model_filepath)
 
         model.load_prior('./data/laptops_bootstrapping_test.dat', word_index)
-        print(args.iters)
         model.infer(iters=args.iters)
         model.print_top_word(index_word, 15)
         model.save(model_trained_filepath)
+        model.save_HTMM_model(htmm_model_trained_filepath)
