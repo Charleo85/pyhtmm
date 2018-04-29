@@ -107,4 +107,4 @@ data/*
 log/*
 
 # mac
-**.DS_Store
+.DS_Store

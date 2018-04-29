@@ -22,7 +22,7 @@ class FastRestrictedViterbi:
         self.t_ = len(local)
         self.topics_ = len(theta)
         self.states_ = self.topics_ * 2
-        delta = np.zeros(self.t_, self.states_)
+        delta = np.zeros((self.t_, self.states_))
         best = np.zeros((self.t_, self.states_), dtype='int')
         self.compute_all_deltas(pi, local, theta, epsilon, delta, best)
         self.backtrack_best_path(delta[-1], best, best_path)
