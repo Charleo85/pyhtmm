@@ -1,6 +1,7 @@
 import random, math, pickle, sys
 import numpy as np
 import argparse
+from tqdm import tqdm
 
 from multiprocessing import Process, Queue
 from multiprocessing.sharedctypes import RawArray, Array
@@ -162,7 +163,7 @@ class EM(HTMM):
             tmp = np.frombuffer(shared_arr)
             self.p_dwzpsi_ = tmp.reshape(self.p_dwzpsi_shape_)
 
-        for epoch in range(iters):
+        for epoch in tqdm(range(iters)):
             self.e_step(shared_arr)
             self.m_step()
             print("iteration: %d, loglikelihood: %f" % (epoch, self.loglik_))
@@ -390,10 +391,12 @@ if __name__ == "__main__":
     # config_logger()
 
     parser = argparse.ArgumentParser(description='PyHTMM interface')
-    parser.add_argument('--topwords', metavar='N', type=int, nargs='+',
+    parser.add_argument('--topwords', type=int,
                         help='number of top words to print for each topics')
-    parser.add_argument('--iters', metavar='N', type=int, nargs='+',
+    parser.add_argument('--iters', type=int, default=10,
                         help='number of iterations to train')
+    parser.add_argument('--workers', type=int, default=1,
+                        help='number of workers to train')
     parser.add_argument('-train',action='store_true')
     parser.add_argument('-process',action='store_true')
 
@@ -421,10 +424,11 @@ if __name__ == "__main__":
             model = load_pickle(model_filepath)
         except:
             print("model not existed, start training...")
-            model = EM(docs, len(word_index), num_workers=32)
+            model = EM(docs, len(word_index), num_workers=args.workers)
             model.save(model_filepath)
 
         model.load_prior('./data/laptops_bootstrapping_test.dat', word_index)
+        print(args.iters)
         model.infer(iters=args.iters)
         model.print_top_word(index_word, 15)
         model.save(model_trained_filepath)
