@@ -34,7 +34,7 @@ def process(txt):
         doc.add_sentence(sentence)
     return doc
 
-def process_doc(doc):
+def process_doc(txt):
     sentences = paragraph2sentence(txt)
     doc = _Document()
     for stn in sentences:
