@@ -34,14 +34,14 @@ class FastRestrictedViterbi:
             prev_best = np.argmax(delta[i-1]) # this is find_best_in_level
             for s in range(self.topics_):
                 delta[i, s] = delta[i-1, prev_best] * epsilon * theta[s] * local[i, s]
-                best[s] = prev_best
+                best[i, s] = prev_best
 
                 if delta[i-1, s] > delta[i-1, s+self.topics_]:
                     delta[i, s+self.topics_] = delta[i-1, s] * (1-epsilon) * local[i, s]
-                    best[s+self.topics_] = s
+                    best[i, s+self.topics_] = s
                 else:
                     delta[i, s+self.topics_] = delta[i-1, s+self.topics_] * (1-epsilon) * local[i, s]
-                    best[s+self.topics_] = s + self.topics_
+                    best[i, s+self.topics_] = s + self.topics_
 
             delta[i] /= delta[i].sum()
 
@@ -49,7 +49,7 @@ class FastRestrictedViterbi:
     def init_delta(self, pi, local0, delta0):
         for i in range(self.topics_):
             delta0[i] = pi[i] * local0[i]
-            delta0[i+self.topics_] = pi[i+topics_] * local0[i]
+            delta0[i+self.topics_] = pi[i+self.topics_] * local0[i]
         delta0 /= delta0.sum()
 
 

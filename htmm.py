@@ -96,7 +96,7 @@ class HTMM(Pickleable):
 
     def compute_local_probs_for_doc_htmm(self, doc, local):
         for i in range(doc.num_sentences):
-            for z in range(self.topics_s):
+            for z in range(self.topics_):
                 local[i, z] = 1.0 / self.topics_
 
             for j in range(doc.sentence_list[i].num_words):
@@ -204,7 +204,6 @@ class EM(HTMM):
                     idx = word_index[word]
                     self.phi_[z, idx] += eta
         lines.close()
-
 
     def rand_init_params(self):
         self.epsilon_ = random.uniform(0, 1)
@@ -412,8 +411,7 @@ if __name__ == "__main__":
         except:
             print("model does not exist at %s"%(htmm_model_trained_filepath))
             exit()
-        print(args.predict)
-        htmm_model.predict_topic(process_doc(args.predict))
+        print(htmm_model.predict_topic(process_doc(args.predict)))
         exit()
 
     if args.process:
