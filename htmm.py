@@ -59,7 +59,7 @@ class HTMM(Pickleable):
         self.words_ = words
 
 
-    def predict_topic(doc):
+    def predict_topic(self, doc):
         theta_i = np.random.rand(self.topics_)
         p_dwzpsi_i = np.zeros((doc.num_sentences, 2*self.topics_))
         path = [0] * doc.num_sentences
