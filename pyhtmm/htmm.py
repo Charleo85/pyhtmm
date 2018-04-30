@@ -57,18 +57,7 @@ class HTMM(Pickleable):
         self.words_ = words
 
 
-    def __init__(self, other):
-        self.alpha_ = other.alpha_
-        self.beta_ = other.beta_
-        self.epsilon_ = other.epsilon_
-        self.iters_ = other.iters_
-        self.phi_ = other.phi_
-        self.topics_ = other.topics_
-        self.words_ = other.words_
-
-
     def predict_topic(self, doc):
-        theta_i = np.random.rand(self.topics_)
         p_dwzpsi_i = np.zeros((doc.num_sentences, 2*self.topics_))
         path = [0] * doc.num_sentences
 
@@ -160,7 +149,8 @@ class EM(HTMM):
 
 
     def save_HTMM_model(self, filepath):
-        HTMM(self).save(filepath)
+        htmm = HTMM(self.alpha_, self.beta_, self.epsilon_, self.iters_, self.phi_, self.topics_, self.words_)
+        htmm.save(filepath)
 
 
     def infer(self, iters=None):
