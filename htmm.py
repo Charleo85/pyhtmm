@@ -8,7 +8,7 @@ from multiprocessing.sharedctypes import RawArray, Array
 
 from fast_restricted_hmm import FastRestrictedHMM
 from fast_restricted_viterbi import FastRestrictedViterbi
-from process import read_train_documents
+from process import read_train_documents, process_doc
 from utils import config_logger, save_pickle, load_pickle, word2index
 
 """
@@ -392,6 +392,8 @@ if __name__ == "__main__":
     # config_logger()
 
     parser = argparse.ArgumentParser(description='PyHTMM interface')
+    parser.add_argument('--predict', type=str,
+                        help='sentence to predict topic')
     parser.add_argument('--topwords', type=int,
                         help='number of top words to print for each topics')
     parser.add_argument('--iters', type=int, default=10,
@@ -403,33 +405,49 @@ if __name__ == "__main__":
 
 
     args = parser.parse_args()
-    if not args.process:
-        word_index = load_pickle(word_index_filepath)
-        index_word = load_pickle(index_word_filepath)
-        docs = load_pickle(docs_path)
-    else:
-        print("docs not processed, start processing...")
+
+    if args.predict != None:
+        try:
+            htmm_model = load_pickle(htmm_model_trained_filepath)
+        except:
+            print("model does not exist at %s"%(htmm_model_trained_filepath))
+            exit()
+        print(args.predict)
+        htmm_model.predict_topic(process_doc(args.predict))
+        exit()
+
+    if args.process:
+        print("start processing...")
         docs, word_index, index_word = read_train_documents('./data/laptops/')
         save_pickle(word_index, word_index_filepath)
         save_pickle(index_word, index_word_filepath)
         save_pickle(docs, docs_path)
+    else:
+        try:
+            word_index = load_pickle(word_index_filepath)
+            index_word = load_pickle(index_word_filepath)
+            docs = load_pickle(docs_path)
+        except:
+            print("docs is not processed at %s, try add -process flag"%(docs_path))
+            exit()
 
-    if args.topwords is not None:
-        # print topword in trained model
-        num_top_words = args.topwords
-        model = load_pickle(model_trained_filepath)
-        model.print_top_word(index_word, num_top_words)
+    if not args.train:
+        try:
+            model = load_pickle(model_trained_filepath)
+        except:
+            print("model does not exist at %s, try add -train flag"%(model_trained_filepath))
+            exit()
     else:
         # train model
-        try:
-            model = load_pickle(model_filepath)
-        except:
-            print("model not existed, start training...")
-            model = EM(docs, len(word_index), num_workers=args.workers)
-            model.save(model_filepath)
+        print("start training...")
+        model = EM(docs, len(word_index), num_workers=args.workers)
+        model.save(model_filepath)
 
         model.load_prior('./data/laptops_bootstrapping_test.dat', word_index)
         model.infer(iters=args.iters)
-        model.print_top_word(index_word, 15)
+
         model.save(model_trained_filepath)
         model.save_HTMM_model(htmm_model_trained_filepath)
+
+    if args.topwords != None:
+        model.print_top_word(index_word, args.topwords)

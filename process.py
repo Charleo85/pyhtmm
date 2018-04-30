@@ -34,6 +34,17 @@ def process(txt):
         doc.add_sentence(sentence)
     return doc
 
+def process_doc(doc):
+    sentences = paragraph2sentence(txt)
+    doc = _Document()
+    for stn in sentences:
+        sentence = _Sentence()
+        for w in filter_wordlist(sentence2word_normalized(stn)):
+            if w in word_index:
+                sentence.add_word(word_index[w])
+        doc.add_sentence(sentence)
+    return doc
+
 
 def read_train_documents(data_dir):
     docs = []
