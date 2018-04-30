@@ -1,9 +1,9 @@
 import json, os
 from tqdm import tqdm
 
-from utils import *
-from document import _Document
-from sentence import _Sentence
+from .utils import *
+from .document import _Document
+from .sentence import _Sentence
 
 word_index = {} #string: int
 index_word = {} #int: string

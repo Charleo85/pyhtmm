@@ -101,7 +101,7 @@ ENV/
 .mypy_cache/
 
 # data
-pyhtmm/data/*
+data/*
 
 # log
 log/*
