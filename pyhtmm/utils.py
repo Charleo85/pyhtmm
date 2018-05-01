@@ -55,7 +55,7 @@ def clean_word(w):
     return normalized(w)
 
 def sentence2word_normalized(raw_sentence):
-    return [word2index(w) for w in sentence2word(raw_sentence)]
+    return [clean_word(w) for w in sentence2word(raw_sentence)]
 
 def filter_wordlist(normalized_word_list):
     return [w for w in normalized_word_list if w not in stopword_list and w not in punctuation_list]
