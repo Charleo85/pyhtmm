@@ -7,7 +7,7 @@ from multiprocessing.sharedctypes import RawArray, Array
 
 from .fast_restricted_hmm import FastRestrictedHMM
 from .fast_restricted_viterbi import FastRestrictedViterbi
-from .utils import word2index
+from .utils import clean_word
 
 """
 Pickleable: An interface for loading and saving objects with pickle
@@ -199,7 +199,7 @@ class EM(HTMM):
         lines = open(prior_file, 'r')
         for z, l in enumerate(lines):
             for raw_word in l.rstrip('\n').split(' ')[1:]:
-                word = word2index(raw_word)
+                word = clean_word(raw_word)
                 if word in word_index:
                     idx = word_index[word]
                     self.phi_[z, idx] += eta

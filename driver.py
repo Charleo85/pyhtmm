@@ -2,7 +2,7 @@ import argparse
 
 from pyhtmm.htmm import EM, HTMM
 from pyhtmm.process import read_train_documents, process_doc
-from pyhtmm.utils import config_logger, save_pickle, load_pickle, word2index
+from pyhtmm.utils import config_logger, save_pickle, load_pickle
 
 
 if __name__ == "__main__":
@@ -32,10 +32,12 @@ if __name__ == "__main__":
     if args.predict != None:
         try:
             htmm_model = load_pickle(htmm_model_trained_filepath)
+            word_index = load_pickle(word_index_filepath)
         except:
             print("model does not exist at %s" % (htmm_model_trained_filepath))
+            print("word_index does not exist at %s" % (word_index_filepath))
             exit()
-        print(htmm_model.predict_topic(process_doc(args.predict)))
+        print(htmm_model.predict_topic(process_doc(args.predict, word_index)))
         exit()
 
     if args.process:
