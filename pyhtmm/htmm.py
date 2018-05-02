@@ -97,7 +97,7 @@ class HTMM(Pickleable):
             for z in range(self.topics_):
                 local[i, z] = 1.0 / self.topics_
 
-            print(doc.sentence_list[i].word_list)
+            #print(doc.sentence_list[i].word_list)
             for j in range(doc.sentence_list[i].num_words):
                 norm = 0.0
                 word = doc.sentence_list[i].word_list[j]
@@ -191,7 +191,7 @@ class EM(HTMM):
     def print_top_word(self, index_word, K=10):
         for phi in self.phi_:
             for idx in np.argsort(phi)[-K:]:
-                print(index_word[idx])
+                print(index_word[idx], idx)
             print("=" * 10)
 
 
