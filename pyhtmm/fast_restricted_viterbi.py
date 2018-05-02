@@ -18,7 +18,7 @@ class FastRestrictedViterbi:
         self.t_ = self.topics_ = self.states_ = 0
 
 
-    def viterbi(self, epsilon, theta, local, pi, best_path):
+    def viterbi(self, epsilon, theta, local, pi, best_path, entropy):
         self.t_ = len(local)
         self.topics_ = len(theta)
         self.states_ = self.topics_ * 2
@@ -26,12 +26,13 @@ class FastRestrictedViterbi:
         best = np.zeros((self.t_, self.states_), dtype='int')
         self.compute_all_deltas(pi, local, theta, epsilon, delta, best)
         self.backtrack_best_path(delta[-1], best, best_path)
+        self.calculate_entropy(delta, entropy)
 
 
     def compute_all_deltas(self, pi, local, theta, epsilon, delta, best):
         self.init_delta(pi, local[0], delta[0])
         for i in range(1, self.t_):
-            prev_best = np.argmax(delta[i-1]) # this is find_best_in_level
+            prev_best = np.argmax(delta[i-1])
             for s in range(self.topics_):
                 delta[i, s] = delta[i-1, prev_best] * epsilon * theta[s] * local[i, s]
                 best[i, s] = prev_best
@@ -57,3 +58,9 @@ class FastRestrictedViterbi:
         best_path[-1] = np.argmax(delta_t)
         for i in range(self.t_-2, -1, -1):
             best_path[i] = best[i+1, best_path[i+1]]
+
+
+    def calculate_entropy(self, delta, entropy):
+        for i in range(len(entropy)):
+            tmp = delta[i] if i > 0 else delta[i][:self.topics_]
+            entropy[i] = -(tmp * np.log(tmp)).sum()

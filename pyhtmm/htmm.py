@@ -60,7 +60,6 @@ class HTMM(Pickleable):
     def predict_topic(self, doc):
         theta_i = np.random.rand(self.topics_)
         p_dwzpsi_i = np.zeros((doc.num_sentences, 2*self.topics_))
-        path = [0] * doc.num_sentences
 
         for i in range(self.iters_):
             self.e_step_in_single_doc_htmm(doc, theta_i, p_dwzpsi_i)
@@ -73,10 +72,12 @@ class HTMM(Pickleable):
             init_probs[i] = theta_i[i]
             init_probs[i+self.topics_] = 0.0
 
+        path = [0] * doc.num_sentences
+        entropy = [0.0] * doc.num_sentences
         f = FastRestrictedViterbi()
-        f.viterbi(self.epsilon_, theta_i, local, init_probs, path)
+        f.viterbi(self.epsilon_, theta_i, local, init_probs, path, entropy)
 
-        return path
+        return path, entropy
 
 
     def e_step_in_single_doc_htmm(self, doc, theta_i, p_dwzpsi_i):

@@ -64,10 +64,10 @@ if __name__ == "__main__":
     else:
         # train model
         print("start training...")
-        model = EM(docs, len(word_index), num_workers=args.workers)
+        model = EM(docs, len(word_index), topics=8, num_workers=args.workers)
         model.save(model_filepath)
 
-        model.load_prior('./data/laptops_bootstrapping_test.dat', word_index)
+        model.load_prior('./data/laptops_bootstrapping_new.dat', word_index)
         model.infer(iters=args.iters)
 
         model.save(model_trained_filepath)
