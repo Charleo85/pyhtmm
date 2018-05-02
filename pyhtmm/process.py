@@ -22,7 +22,7 @@ def process(txt):
     sentences = paragraph2sentence(txt)
     doc = _Document()
     for stn in sentences:
-        sentence = _Sentence()
+        sentence = _Sentence(stn)
         for w in filter_wordlist(sentence2word_normalized(stn)):
             if w in word_index:
                 sentence.add_word(word_index[w])
@@ -38,7 +38,7 @@ def process_doc(txt, word2index):
     sentences = paragraph2sentence(txt)
     doc = _Document()
     for stn in sentences:
-        sentence = _Sentence()
+        sentence = _Sentence(stn)
         for w in filter_wordlist(sentence2word_normalized(stn)):
             if w in word2index:
                 sentence.add_word(word2index[w])
